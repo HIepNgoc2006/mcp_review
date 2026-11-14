@@ -82,10 +82,6 @@ class PortableMcpCatalogTests(unittest.TestCase):
         tools = {tool.name: tool for tool in mcp_server.mcp._tool_manager.list_tools()}
         self.assertFalse(tools["pull_chatgpt_reply"].annotations.read_only_hint)
 
-    def test_preview_claim_release_is_stateful_in_read_tool_metadata(self):
-        tool = next(tool for tool in mcp_server.mcp._tool_manager.list_tools() if tool.name == "pull_chatgpt_reply")
-        self.assertFalse(tool.annotations.read_only_hint)
-
     def test_sdk_in_memory_client_reads_bridge_status(self):
         async def exercise():
             async with Client(mcp_server.mcp) as client:
