@@ -11,7 +11,7 @@ MCP server local để agent qua giao thức `stdio` quan sát và điều khi�
 Portable MCP adapter không kèm Bridge server. Cần Bridge local có các API đã bổ sung cho `GET /queues`, receipt lookup `GET /responses/receipts`, safe restart identity qua `/health` PID + `/bridge/restart`, cùng các endpoint tabs/sessions/pairings, push, response preview/release/inject và Auto-Pilot. Bridge cũ chưa có những endpoint này phải được cập nhật riêng; chỉ mở port `5050` không bảo đảm tương thích.
 - Để chạy từ source/build: Python 3.13, `uv`; dependencies pin cài trong `.venv` project.
 
-## Phát hành portable
+## Phát hành portable v1.0.5
 
 Tải `BridgeMCP-windows-x64.zip` trong phần **Releases**, giải nén và dùng `BridgeMCP.exe`; `SHA256SUMS.txt` chứa SHA-256 archive. Executable độc lập chứa runtime Python 3.13 và MCP SDK; source cài không cần Python/uv.
 
@@ -84,7 +84,7 @@ Thêm vào `~\.omp\agent\mcp.json` hoặc `/mcp add` → **User**:
   }
 }
 ```
-Giữ server omp tắt trong giai đoạn review: thêm `"disabled": true` vào entry trước khi reload. Chỉ đổi thành `false` sau khi quyết định tin cậy server/session. omp không cung cấp per-call approval mode cho server. Với Antigravity, để các công cụ ghi trong `disabledTools` cho tới khi cần bật; không dùng trong unattended/auto-approve session.
+**Approval:** `ToolAnnotations` chỉ là hint, không phải quyền kiểm soát. Trong Codex dùng `default_tools_approval_mode = 'writes'`. Trong Antigravity, `disabledTools` ẩn các tool ghi cho tới khi người dùng bỏ chúng khỏi danh sách; giữ MCP foreground và không dùng unattended. omp không có per-call approval mode, nên để server `disabled` cho tới khi cần dùng và chỉ enable trong session tin cậy. Không dùng auto-approve với dữ liệu không tin cậy.
 
 Sau đó chạy `/mcp reload`, `/mcp list`, `/mcp test chatgpt-bridge`.
 

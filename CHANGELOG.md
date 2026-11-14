@@ -1,11 +1,11 @@
 # Changelog
 
-## 1.0.4
+## 1.0.5
 
 - Pin release actions, separate build and publish permissions, require release-tag ancestry from `main`, and attest the downloadable archive.
 - Disable proxy discovery and reject redirects for all Bridge requests.
 - Enforce hash-verified dependency sync and document write-tool approvals per host.
-- Invoke the pinned provenance wrapper with the ZIP subject so it emits signed SLSA build provenance.
+- Use the pinned provenance wrapper with the archive subject to generate GitHub SLSA attestation.
 
 ## 1.0.0
 
