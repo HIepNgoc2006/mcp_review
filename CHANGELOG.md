@@ -1,0 +1,8 @@
+# Changelog
+
+## 1.0.0
+
+- Add Python MCP SDK stdio server for local ChatGPT–Antigravity Bridge.
+- Add exact-target tools for pairing, queues, safe reply preview/receipt inspection, injection, compact, Auto-Pilot and Bridge restart.
+- Add Windows Python 3.13 dependency lock and PyInstaller portable executable build.
+- Add SDK in-memory, stdio subprocess and no-live-side-effect smoke coverage.

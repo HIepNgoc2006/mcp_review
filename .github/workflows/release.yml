@@ -1,0 +1,36 @@
+name: Publish Windows release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - uses: astral-sh/setup-uv@v5
+      - name: Install locked dependencies
+        run: |
+          uv venv --python 3.13 .venv
+          uv pip sync --python .venv/Scripts/python.exe requirements-mcp.lock
+      - name: Build, test and smoke executable
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\build_windows.ps1
+      - name: Create release archive and checksum
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\BridgeMCP.exe, README.md, LICENSE -DestinationPath BridgeMCP-windows-x64.zip
+          $hash = (Get-FileHash BridgeMCP-windows-x64.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  BridgeMCP-windows-x64.zip" | Set-Content -Encoding ascii SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            BridgeMCP-windows-x64.zip
+            SHA256SUMS.txt
