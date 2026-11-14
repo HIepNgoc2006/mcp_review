@@ -125,7 +125,14 @@ def list_chatgpt_tabs() -> dict:
 def list_anti_sessions(user: str) -> dict:
     """List one Bridge-configured user's Anti sessions without filesystem paths."""
     _require_user(user)
-    return bridge_request("/sessions", query={"user": user})
+    result = bridge_request("/sessions", query={"user": user})
+    return {
+        key: result[key] for key in ("status", "user", "count") if key in result
+    } | {
+        "sessions": _metadata_response(result.get("sessions"), (
+            "user", "conversation_id", "title", "is_active", "is_open", "ambiguous", "size_kb", "steps",
+        ))["items"]
+    }
 
 
 @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False))
@@ -139,10 +146,21 @@ def list_pairings() -> dict:
 @mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False))
 def list_queues() -> dict:
     """List queue counts and message/response IDs only; never returns queued bodies."""
-    return bridge_request("/queues")
+    result = bridge_request("/queues")
+    safe = {"status": result.get("status", "unknown")}
+    for queue_name, id_field in (("outbound", "message_ids"), ("responses", "response_ids")):
+        queues = result.get(queue_name)
+        if not isinstance(queues, dict):
+            safe[queue_name] = {}
+            continue
+        safe[queue_name] = {
+            chat_id: {key: item[key] for key in ("count", id_field) if key in item}
+            for chat_id, item in queues.items() if isinstance(chat_id, str) and isinstance(item, dict)
+        }
+    return safe
 
 
-@mcp.tool(annotations=ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False))
+@mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=False))
 def pull_chatgpt_reply(chat_id: str, preview_chars: Annotated[int, Field(ge=1, le=MAX_REPLY_PREVIEW_CHARS)] = 500) -> dict:
     """Read a bounded preview for an explicit ChatGPT ID and release its claim."""
     _require_text(chat_id, "chat_id")
@@ -174,7 +192,15 @@ def get_delivery_receipt(chat_id: str, response_id: str) -> dict:
     """Inspect metadata for one exact response delivery receipt without exposing prompt data."""
     _require_text(chat_id, "chat_id")
     _require_text(response_id, "response_id")
-    return bridge_request("/responses/receipts", query={"chat_id": chat_id, "response_id": response_id})
+    result = bridge_request("/responses/receipts", query={"chat_id": chat_id, "response_id": response_id})
+    receipt = result.get("receipt")
+    safe = {"status": result.get("status", "unknown")}
+    if isinstance(receipt, dict):
+        safe["receipt"] = {
+            key: receipt[key] for key in ("chat_id", "response_id", "user", "conversation_id", "agent", "state")
+            if key in receipt
+        }
+    return safe
 
 
 @mcp.tool(annotations=ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False))

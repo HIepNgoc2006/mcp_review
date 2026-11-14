@@ -8,6 +8,7 @@ MCP server local để agent qua giao thức `stdio` quan sát và điều khi�
 
 - Windows 10/11 x64.
 - Để chạy executable: không cần cài Python hay SDK; cần một Bridge đã cài riêng tại `127.0.0.1:5050` để thực hiện các tool kết nối Bridge.
+Portable MCP adapter không kèm Bridge server. Cần Bridge local có các API đã bổ sung cho `GET /queues`, receipt lookup `GET /responses/receipts`, safe restart identity qua `/health` PID + `/bridge/restart`, cùng các endpoint tabs/sessions/pairings, push, response preview/release/inject và Auto-Pilot. Bridge cũ chưa có những endpoint này phải được cập nhật riêng; chỉ mở port `5050` không bảo đảm tương thích.
 - Để chạy từ source/build: Python 3.13, `uv`; dependencies pin cài trong `.venv` project.
 
 ## Phát hành portable
@@ -92,10 +93,10 @@ Host entries chỉ khai báo launcher. Executable không embed đường dẫn B
 - `list_anti_sessions(user)`: session IDs/trạng thái, không trả filesystem path.
 - `list_pairings`: mapping và online state.
 - `list_queues`: counts và IDs, không trả body.
-- `pull_chatgpt_reply(chat_id, preview_chars=500)`: preview tối đa 2000 ký tự; claim được release, reply không bị consume.
 - `get_delivery_receipt(chat_id, response_id)`: metadata receipt exact response; không trả prompt/digest/claim token.
 
 ### Có side effect
+- `pull_chatgpt_reply(chat_id, preview_chars=500)`: tạo claim queue tạm, trả preview tối đa 2000 ký tự rồi release claim; không consume reply. Đây là stateful tool, không phải read-only.
 
 - `pair_chat(chat_id, user, conversation_id, agent)`: thêm pairing; Agent `agent_1`…`agent_4`.
 - `unpair_chat(chat_id)`: xóa pairing đúng ID.

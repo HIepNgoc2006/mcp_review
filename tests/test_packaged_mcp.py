@@ -25,6 +25,14 @@ class PackagedMcpProtocolTests(unittest.TestCase):
         ])
         self.assertTrue(tools["restart_bridge"].annotations.destructive_hint)
 
+    def test_release_archive_places_executable_at_documented_root(self):
+        import zipfile
+        root = os.path.dirname(os.path.dirname(__file__))
+        archive_path = os.path.join(root, "BridgeMCP-windows-x64.zip")
+        if not os.path.isfile(archive_path):
+            self.skipTest("Build the release archive before validating packaged paths")
+        with zipfile.ZipFile(archive_path) as archive:
+            self.assertEqual(set(archive.namelist()), {"BridgeMCP.exe", "README.md", "LICENSE"})
 
 if __name__ == "__main__":
     unittest.main()

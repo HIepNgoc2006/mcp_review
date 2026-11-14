@@ -35,6 +35,56 @@ class PortableMcpCatalogTests(unittest.TestCase):
             result = mcp_server.get_delivery_receipt("chat-1", "response-1")
         self.assertEqual(result, {"status": "found"})
         bridge.assert_called_once_with("/responses/receipts", query={"chat_id": "chat-1", "response_id": "response-1"})
+    def test_session_listing_filters_paths_and_untrusted_extra_fields(self):
+        result = {
+            "status": "ok", "user": "workstation-profile", "count": 1,
+            "sessions": [{"user": "workstation-profile", "conversation_id": "anti-1", "title": "Review",
+                          "is_active": True, "is_open": True, "ambiguous": False, "size_kb": 2, "steps": 4,
+                          "path": "C:/private/profile", "transcript": "private reply"}],
+            "debug": "private data",
+        }
+        with patch.object(mcp_server, "bridge_request", return_value=result):
+            safe = mcp_server.list_anti_sessions("workstation-profile")
+        self.assertEqual(safe, {
+            "status": "ok", "user": "workstation-profile", "count": 1,
+            "sessions": [{"user": "workstation-profile", "conversation_id": "anti-1", "title": "Review",
+                          "is_active": True, "is_open": True, "ambiguous": False, "size_kb": 2, "steps": 4}],
+        })
+
+    def test_queue_listing_filters_bodies_and_unknown_bridge_fields(self):
+        result = {
+            "status": "ok", "outbound": {"chat-1": {"count": 1, "message_ids": ["message-1"], "text": "secret"}},
+            "responses": {"chat-1": {"count": 1, "response_ids": ["response-1"], "raw": "private reply"}},
+            "debug": "private",
+        }
+        with patch.object(mcp_server, "bridge_request", return_value=result):
+            safe = mcp_server.list_queues()
+        self.assertEqual(safe, {
+            "status": "ok",
+            "outbound": {"chat-1": {"count": 1, "message_ids": ["message-1"]}},
+            "responses": {"chat-1": {"count": 1, "response_ids": ["response-1"]}},
+        })
+
+    def test_delivery_receipt_lookup_excludes_claims_digests_and_untrusted_fields(self):
+        result = {"status": "found", "receipt": {
+            "chat_id": "chat-1", "response_id": "response-1", "user": "workstation-profile",
+            "conversation_id": "anti-1", "agent": "agent_2", "state": "ack_pending",
+            "claim_id": "secret-claim", "fingerprint": "secret-hash", "prompt": "private reply",
+        }, "debug": "private"}
+        with patch.object(mcp_server, "bridge_request", return_value=result):
+            safe = mcp_server.get_delivery_receipt("chat-1", "response-1")
+        self.assertEqual(safe, {"status": "found", "receipt": {
+            "chat_id": "chat-1", "response_id": "response-1", "user": "workstation-profile",
+            "conversation_id": "anti-1", "agent": "agent_2", "state": "ack_pending",
+        }})
+
+    def test_reply_preview_is_not_advertised_as_read_only(self):
+        tools = {tool.name: tool for tool in mcp_server.mcp._tool_manager.list_tools()}
+        self.assertFalse(tools["pull_chatgpt_reply"].annotations.read_only_hint)
+
+    def test_preview_claim_release_is_stateful_in_read_tool_metadata(self):
+        tool = next(tool for tool in mcp_server.mcp._tool_manager.list_tools() if tool.name == "pull_chatgpt_reply")
+        self.assertFalse(tool.annotations.read_only_hint)
 
     def test_sdk_in_memory_client_reads_bridge_status(self):
         async def exercise():
