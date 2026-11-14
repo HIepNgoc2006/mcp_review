@@ -1,10 +1,11 @@
 # Changelog
 
-## 1.0.1
+## 1.0.2
 
 - Pin release actions, separate build and publish permissions, require release-tag ancestry from `main`, and attest the downloadable archive.
 - Disable proxy discovery and reject redirects for all Bridge requests.
 - Enforce hash-verified dependency sync and document write-tool approvals per host.
+- Correct the pinned attestation action to a valid immutable commit so tagged releases can publish provenance successfully.
 
 ## 1.0.0
 
