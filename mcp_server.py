@@ -54,7 +54,12 @@ def bridge_request(path: str, payload: dict | None = None, query: dict | None = 
         method=method or ("GET" if payload is None else "POST"),
     )
     try:
-        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+        class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self, redirected_request, response, code, message, headers, new_url):
+                return None
+
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirectHandler())
+        with opener.open(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
             result = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as error:
         try:

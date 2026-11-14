@@ -22,7 +22,7 @@ Clone repository vào vị trí tùy chọn, ví dụ `C:\Tools\mcp_review`:
 ```powershell
 cd C:\Tools\mcp_review
 uv venv --python 3.13 .venv
-uv pip sync --python .venv\Scripts\python.exe requirements-mcp.lock
+uv pip sync --require-hashes --python .venv\Scripts\python.exe requirements-mcp.lock
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build_windows.ps1
 ```
 
@@ -42,7 +42,11 @@ Cấu hình toàn cục `~\.gemini\config\mcp_config.json` hoặc workspace `<wo
     "chatgpt-bridge": {
       "command": "C:\\Tools\\mcp_review\\BridgeMCP.exe",
       "args": [],
-      "cwd": "C:\\Tools\\mcp_review"
+      "cwd": "C:\\Tools\\mcp_review",
+      "disabledTools": [
+        "pair_chat", "unpair_chat", "push_to_chatgpt", "inject_chatgpt_reply",
+        "compact_anti_session", "start_autopilot", "stop_autopilot", "restart_bridge"
+      ]
     }
   }
 }
@@ -59,6 +63,7 @@ Thêm vào `~\.codex\config.toml`:
 command = 'C:\Tools\mcp_review\BridgeMCP.exe'
 args = []
 cwd = 'C:\Tools\mcp_review'
+default_tools_approval_mode = 'writes'
 ```
 
 Restart/reload MCP trong host; Codex CLI có `codex mcp list`.
@@ -79,6 +84,7 @@ Thêm vào `~\.omp\agent\mcp.json` hoặc `/mcp add` → **User**:
   }
 }
 ```
+Giữ server omp tắt trong giai đoạn review: thêm `"disabled": true` vào entry trước khi reload. Chỉ đổi thành `false` sau khi quyết định tin cậy server/session. omp không cung cấp per-call approval mode cho server. Với Antigravity, để các công cụ ghi trong `disabledTools` cho tới khi cần bật; không dùng trong unattended/auto-approve session.
 
 Sau đó chạy `/mcp reload`, `/mcp list`, `/mcp test chatgpt-bridge`.
 
@@ -86,7 +92,7 @@ Host entries chỉ khai báo launcher. Executable không embed đường dẫn B
 
 ## Công cụ
 
-### Chỉ đọc
+### Read/query tools
 
 - `get_bridge_status`: Bridge health, PID và số process/listener.
 - `list_chatgpt_tabs`: metadata tab online; không đọc prompt body.

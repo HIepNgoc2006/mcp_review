@@ -123,5 +123,71 @@ class PortableMcpCatalogTests(unittest.TestCase):
         self.assertEqual(len(tools.tools), 16)
         self.assertIn("get_delivery_receipt", {tool.name for tool in tools.tools})
 
+    def test_bridge_transport_uses_an_explicit_proxy_free_opener(self):
+        from unittest.mock import Mock
+        from urllib.request import ProxyHandler
+        class Response:
+            def __enter__(self):
+                return self
+            def __exit__(self, *_):
+                return None
+            def read(self):
+                return b'{"status":"running"}'
+
+        opener = Mock()
+        opener.open.return_value = Response()
+        with patch.object(mcp_server.urllib.request, "build_opener", return_value=opener) as build:
+            with patch.object(mcp_server.urllib.request, "urlopen", side_effect=AssertionError("ambient opener used")):
+                result = mcp_server.bridge_request("/health")
+        build.assert_called_once()
+        self.assertIsInstance(build.call_args.args[0], ProxyHandler)
+        self.assertEqual(build.call_args.args[0].proxies, {})
+        opener.open.assert_called_once()
+        self.assertEqual(result["status"], "running")
+    def test_bridge_write_redirect_never_forwards_payload_to_another_origin(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        redirected = threading.Event()
+        received = []
+
+        class RedirectTarget(BaseHTTPRequestHandler):
+            def do_GET(self):
+                redirected.set()
+                self.send_response(200)
+                self.end_headers()
+
+            def log_message(self, *_):
+                pass
+
+        target = ThreadingHTTPServer(("127.0.0.1", 0), RedirectTarget)
+
+        class BridgeRedirect(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(302)
+                self.send_header("Location", f"http://127.0.0.1:{target.server_port}/capture")
+                self.end_headers()
+
+            def log_message(self, *_):
+                pass
+
+        bridge = ThreadingHTTPServer(("127.0.0.1", 0), BridgeRedirect)
+        threads = [threading.Thread(target=server.serve_forever, daemon=True) for server in (target, bridge)]
+        for thread in threads:
+            thread.start()
+        try:
+            with patch.object(mcp_server, "BRIDGE_URL", f"http://127.0.0.1:{bridge.server_port}"):
+                with self.assertRaises(mcp_server.BridgeError):
+                    mcp_server.bridge_request("/health")
+            self.assertFalse(redirected.is_set())
+            self.assertEqual(received, [])
+        finally:
+            bridge.shutdown()
+            target.shutdown()
+            bridge.server_close()
+            target.server_close()
+            for thread in threads:
+                thread.join()
+
 if __name__ == "__main__":
     unittest.main()
