@@ -18,7 +18,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 BRIDGE_URL = "http://127.0.0.1:5050"
 REQUEST_TIMEOUT_SECONDS = 5
 MAX_REPLY_PREVIEW_CHARS = 2000

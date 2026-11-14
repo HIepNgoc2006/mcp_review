@@ -57,6 +57,8 @@ jobs:
         with:
           name: BridgeMCP-release
       - uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f
+        with:
+          subject-path: BridgeMCP-windows-x64.zip
       - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           generate_release_notes: true
